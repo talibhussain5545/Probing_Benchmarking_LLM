@@ -1,27 +1,27 @@
-# BageLLM: Automated Data Preparation Pipeline
+# Probing_Benchmarking_LLM: Automated Data Preparation Pipeline
 
-This repository contains the implementation of BageLLM, an automated data preparation pipeline specifically optimized for Llama 3.2 fine-tuning.
+**Probing_Benchmarking_LLM** is an automated data preparation pipeline designed specifically for fine-tuning large language models, particularly **Llama 3.2**. It includes modules for data annotation, cleaning, quality control, and batch processing.
+
+---
 
 ## Project Structure
+
 ```
-BageLLM/
+Probing_Benchmarking_LLM/
 ├── src/
-│   ├── __init__.py
 │   ├── annotator.py
 │   ├── cleaner.py
 │   ├── pipeline.py
+│   ├── s3_connector.py
+│   ├── annotation_system/
+│   │   ├── base.py
+│   │   └── processors.py
 │   ├── quality_control/
-│   │   ├── __init__.py
 │   │   ├── base.py
 │   │   ├── metrics.py
 │   │   └── rules.py
-│   ├── annotation_system/
-│   │   ├── __init__.py
-│   │   ├── base.py
-│   │   └── processors.py
-│   └── s3_connector.py
+│   └── __init__.py
 ├── tests/
-│   ├── __init__.py
 │   ├── test_cleaner.py
 │   ├── test_annotation_system.py
 │   └── test_quality_control.py
@@ -31,58 +31,71 @@ BageLLM/
 └── run.py
 ```
 
+---
+
 ## Installation
 
-1. Create and activate a virtual environment:
+### 1. Set Up the Virtual Environment
+
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 ```
 
-2. Install dependencies:
+### 2. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Install required models:
+### 3. Install Required Models
+
 ```bash
 python -m spacy download en_core_web_sm
 ```
 
+---
+
 ## Configuration
 
-1. Set up AWS credentials for S3 access:
-```bash
+### AWS Credentials
+
+Set up your AWS credentials to enable S3 access:
+
+```ini
 # ~/.aws/credentials
 [default]
-aws_access_key_id = your_access_key
-aws_secret_access_key = your_secret_key
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_KEY
 ```
 
-2. Create quality control configuration (config/quality_config.json):
+### Quality Control Configuration
+
+Create the file `config/quality_config.json`:
+
 ```json
 {
-    "min_completeness": 0.8,
-    "min_consistency": 0.7,
-    "min_validity": 0.8,
-    "min_uniqueness": 0.9,
-    "max_data_age_days": 30,
-    "min_accuracy": 0.8,
-    "text_length_threshold": 10,
-    "min_overall_score": 0.75,
-    "output_dir": "quality_reports"
+  "min_completeness": 0.8,
+  "min_consistency": 0.7,
+  "min_validity": 0.8,
+  "min_uniqueness": 0.9,
+  "max_data_age_days": 30,
+  "min_accuracy": 0.8,
+  "text_length_threshold": 10,
+  "min_overall_score": 0.75,
+  "output_dir": "quality_reports"
 }
 ```
 
-## Components
+---
+
+## Core Components
 
 ### 1. Annotation System
-The annotation system provides comprehensive text analysis:
 
 ```python
 from src.annotation_system import AnnotationSystem, AnnotationConfig
 
-# Initialize
 config = AnnotationConfig(
     enable_entities=True,
     enable_sentiment=True,
@@ -90,40 +103,32 @@ config = AnnotationConfig(
     enable_keywords=True,
     enable_language=True
 )
+
 system = AnnotationSystem(config)
-
-# Process single text
 annotations = system.annotate_text("Your text here")
-
-# Process batch
-annotations = system.process_batch(["Text 1", "Text 2"])
 ```
 
-Features:
-- Named Entity Recognition
+**Features**:
+
+- Named Entity Recognition (NER)
 - Sentiment Analysis
 - Topic Detection
 - Keyword Extraction
 - Language Detection
 
-### 2. Quality Control System
-The quality control system ensures data quality through multiple dimensions:
+---
+
+### 2. Quality Control
 
 ```python
-from src.quality_control import QualityController, SpecialCharacterRule
+from src.quality_control import QualityController
 
-# Initialize
 controller = QualityController()
-
-# Validate data
 passed, issues, metrics = controller.validate_data(your_dataframe)
-
-# Use specific rules
-rule = SpecialCharacterRule()
-result = rule.validate(your_dataframe)
 ```
 
-Quality Dimensions:
+**Supported Metrics**:
+
 - Completeness
 - Consistency
 - Validity
@@ -132,87 +137,99 @@ Quality Dimensions:
 - Integrity
 - Accuracy
 
-### 3. Cleaning Pipeline
-The cleaning pipeline processes and prepares the data:
+**Custom Rule Example**:
 
 ```python
-from src.pipeline import AnnotationPipeline
+from src.quality_control import SpecialCharacterRule
 
-pipeline = AnnotationPipeline()
-pipeline.process_datasets()
+rule = SpecialCharacterRule()
+result = rule.validate(your_dataframe)
 ```
 
-Features:
-- Text cleaning
-- Format standardization
-- Quality validation
-- Batch processing
+---
 
-## Usage Examples
+### 3. Cleaning Pipeline
 
-### 1. Full Pipeline
 ```python
 from src.pipeline import AnnotationPipeline
 
-# Initialize and run pipeline
 pipeline = AnnotationPipeline(output_dir="processed_data")
 pipeline.process_datasets()
 ```
 
-### 2. Quality Control
+**Pipeline Steps**:
+
+- Data Cleaning
+- Format Normalization
+- Quality Validation
+- Batch Processing
+
+---
+
+## Usage Examples
+
+### Full Pipeline Execution
+
+```python
+from src.pipeline import AnnotationPipeline
+
+pipeline = AnnotationPipeline(output_dir="processed_data")
+pipeline.process_datasets()
+```
+
+### Quality Control Only
+
 ```python
 from src.quality_control import QualityController
 import pandas as pd
 
-# Load data
 data = pd.read_csv("your_data.csv")
-
-# Initialize controller
 controller = QualityController()
-
-# Validate data
 passed, issues, metrics = controller.validate_data(data)
 
-# Check results
 print(f"Passed: {passed}")
 print(f"Issues: {issues}")
 print(f"Overall Score: {metrics.overall_score}")
 ```
 
-### 3. Annotation System
+### Annotation Example
+
 ```python
 from src.annotation_system import AnnotationSystem
 
-# Initialize
 system = AnnotationSystem()
-
-# Process text
 text = "Apple Inc. is planning to release a new iPhone next year."
 result = system.annotate_text(text)
 
-# View results
 print("Entities:", result['entities'])
 print("Sentiment:", result['sentiment'])
 print("Topics:", result['topics'])
 ```
 
+---
+
 ## Testing
 
 Run all tests:
+
 ```bash
 python -m unittest discover tests
 ```
 
-Run specific test suites:
+Run specific test files:
+
 ```bash
 python -m unittest tests/test_cleaner.py
 python -m unittest tests/test_annotation_system.py
 python -m unittest tests/test_quality_control.py
 ```
 
+---
+
 ## Output Structure
 
 ### Quality Reports
+
 ```
 quality_reports/
 ├── quality_report_dataset1_20241110_123456.json
@@ -222,6 +239,7 @@ quality_reports/
 ```
 
 ### Processed Data
+
 ```
 processed_data/
 ├── processed_dataset1.csv
@@ -230,60 +248,54 @@ processed_data/
 └── processed_dataset2_metrics.json
 ```
 
+---
+
 ## Development Timeline
 
-### Day 1 ✅
-- [x] Environment setup
-- [x] Core infrastructure
-- [x] Basic cleaning pipeline
-- [x] Initial testing
+### Day 1
 
-### Day 2 ✅
-- [x] Annotation system implementation
-- [x] Quality control metrics
-- [x] Validation rules
-- [x] Integration testing
+- Environment setup
+- Core infrastructure
+- Basic cleaning pipeline
+- Initial tests
+
+### Day 2
+
+- Annotation system
+- Quality control metrics
+- Validation rules
+- Full integration tests
+
+---
 
 ## Contributing
 
+To contribute:
+
 1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create a new branch
+3. Make your changes
+4. Push to your branch
+5. Submit a pull request
+
+---
 
 ## Troubleshooting
 
-Common issues and solutions:
+### Import Errors
 
-1. Import Errors:
 ```bash
-pip install -e .  # Install package in editable mode
+pip install -e .
 ```
 
-2. Model Download Issues:
+### Model Download Errors
+
 ```bash
 python -m spacy download en_core_web_sm --force
 ```
 
-3. Quality Control Failures:
-- Check the quality_reports directory for detailed error reports
-- Adjust thresholds in config/quality_config.json
-- Review the validation rules in the logs
+### Quality Control Failures
 
-## Support
-
-For any issues:
-1. Check the logs in:
-   - pipeline.log
-   - quality_control.log
-2. Review the quality reports
-3. Run the test suite
-4. Create a GitHub issue with:
-   - Detailed description
-   - Relevant log excerpts
-   - Steps to reproduce
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Review reports in the `quality_reports/` folder
+- Adjust thresholds in `config/quality_config.json`
+- Check the logs in `pipeline.log` and `quality_control.log`
